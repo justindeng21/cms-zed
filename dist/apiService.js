@@ -133,6 +133,9 @@ class codeStorageDatabase extends server_1.Database {
     _setSession(userId, username, token) {
         return this._query(`update users set sessionCookie = "${token}" where userId = ${userId} and username = "${username}";`);
     }
+    _delete(fileId) {
+        return this._query(`delete from files where fileId = ${fileId}`);
+    }
     _validateToken(token) {
         return this._query(`select userId from users where sessionCookie = "${token}"`);
     }
@@ -460,6 +463,16 @@ class apiService extends server_1.Server {
             else {
                 this.database._validateToken(this.validateSession(req.headers.cookie.split('; '))).then((rows) => {
                     if (rows.length !== 0) {
+                        const fileId = req.body.fileId;
+                        this.database._loadFile(rows[0].userId, fileId).then((rows) => {
+                            this.s3Bucket.deleteObject({ Bucket: this.bucketName, Key: rows[0].s3Key }, function (err, data) {
+                                if (err)
+                                    console.log(err, err.stack); // error
+                                else
+                                    console.log(); // deleted
+                            });
+                            this.database._delete(fileId);
+                        });
                         res.sendStatus(200);
                     }
                     else
