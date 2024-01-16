@@ -1,0 +1,44 @@
+{
+    "name": "ucpextapi",
+    "version": "1.0.0",
+    "description": "",
+    "main": "endpoints.js",
+    "scripts": {
+        "dev": "nodemon dev/endpoints.ts",
+        "start": "node dist/endpoints.js",
+        "deploy": "tsc && git add . && git commit -m \"auto-deploy\" && git push origin main",
+        "build": "cd ../ && cd projectbuilder && tsc && vite build",
+        "buildt": "cd textEditor && npm run build && cd ../ && npm run dev"
+    },
+    "author": "Justin Deng",
+    "license": "ISC",
+    "dependencies": {
+        "@types/body-parser": "^1.19.2",
+        "@types/express": "^4.17.17",
+        "ace-builds": "^1.32.3",
+        "aws-sdk": "^2.1533.0",
+        "body-parser": "^1.20.2",
+        "brace": "^0.11.1",
+        "express": "^4.18.2",
+        "mysql": "github:mysqljs/mysql",
+        "node-sass": "^9.0.0",
+        "nodemon": "^3.0.1",
+        "path": "^0.12.7",
+        "react": "^18.2.0",
+        "react-dom": "^18.2.0",
+        "ts-node": "^10.9.1",
+        "typescript": "^5.1.6"
+    },
+    "devDependencies": {
+        "@types/mysql": "^2.15.24",
+        "@types/react": "^18.2.43",
+        "@types/react-dom": "^18.2.17",
+        "@vitejs/plugin-react": "^4.2.1",
+        "eslint": "^8.55.0",
+        "eslint-plugin-react": "^7.33.2",
+        "eslint-plugin-react-hooks": "^4.6.0",
+        "eslint-plugin-react-refresh": "^0.4.5",
+        "sass": "^1.69.6",
+        "vite": "^5.0.8"
+    }
+}
