@@ -4,10 +4,10 @@
     "description": "",
     "main": "endpoints.js",
     "scripts": {
-        "dev": "nodemon dev/endpoints.ts",
-        "start": "node dist/endpoints.js",
-        "deploy": "git add . && git commit -m \"auto-deploy\" && git push origin main",
-        "build": "echo no build process",
+        "startDevServer": "nodemon dev/endpoints.ts",
+        "startServer": "node dist/endpoints.js",
+        "deploy": "npm run build && git add . && git commit -m \"auto-deploy\" && git push origin main",
+        "build": "tsc && cd textEditor && npm run build",
         "buildt": "cd textEditor && npm run build && cd ../ && npm run dev"
     },
     "author": "Justin Deng",

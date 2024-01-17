@@ -515,31 +515,20 @@ class apiService extends server_1.Server {
         /////////////////////////////////////////////////////////////////////////////////////////////////////
         */
         this.app.get('/view/:fileId', server_2.jsonParser, (req, res) => {
-            if (req.headers.cookie === undefined) {
-                res.sendStatus(401);
-            }
-            else {
-                const fileId = req.params.fileId;
-                this.database._validateToken(this.validateSession(req.headers.cookie.split('; '))).then((rows) => {
-                    if (rows.length !== 0) {
-                        this.database._query(`select * from files where userId = ${rows[0].userId} and fileId = ${fileId}`).then((rows) => {
-                            if (rows[0].fileExtension === 'css')
-                                res.setHeader('content-type', 'text/css');
-                            if (rows[0].fileExtension === 'js')
-                                res.setHeader('content-type', 'application/javascript');
-                            if (rows[0].fileExtension === 'html')
-                                res.setHeader('content-type', 'text/html');
-                            this.database._loadFile(rows[0].userId, Number(fileId)).then((rows) => {
-                                this.s3Bucket.getObject({ Bucket: this.bucketName, Key: rows[0].s3Key }, function (err, data) {
-                                    res.send(data.Body.toString('utf-8'));
-                                });
-                            });
-                        });
-                    }
-                    else
-                        res.sendStatus(401);
+            const fileId = req.params.fileId;
+            this.database._query(`select * from files where fileId = ${fileId}`).then((rows) => {
+                if (rows[0].fileExtension === 'css')
+                    res.setHeader('content-type', 'text/css');
+                if (rows[0].fileExtension === 'js')
+                    res.setHeader('content-type', 'application/javascript');
+                if (rows[0].fileExtension === 'html')
+                    res.setHeader('content-type', 'text/html');
+                this.database._loadFile(rows[0].userId, Number(fileId)).then((rows) => {
+                    this.s3Bucket.getObject({ Bucket: this.bucketName, Key: rows[0].s3Key }, function (err, data) {
+                        res.send(data.Body.toString('utf-8'));
+                    });
                 });
-            }
+            });
         });
         /*
         /////////////////////////////////////////////////////////////////////////////////////////////////////
