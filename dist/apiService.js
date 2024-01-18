@@ -26,125 +26,19 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.apiService = exports.PasswordManager = void 0;
+exports.apiService = void 0;
 const server_1 = require("./server");
 const server_2 = require("./server");
-const Crypto = __importStar(require("crypto"));
 const fs_1 = __importDefault(require("fs"));
 const AWS = __importStar(require("aws-sdk"));
-let usersTable = `CREATE TABLE users (
-    userId MEDIUMINT  NOT NULL AUTO_INCREMENT,
-    username varchar(255) NOT NULL,
-    email varchar(255) NOT NULL,
-    sessionCookie varchar(255) NOT NULL,
-    salt varchar(255) NOT NULL,
-    password varchar(500) NOT NULL,
-    primary key (userId)
-);`;
-let appTable = `CREATE TABLE apps (
-    appId MEDIUMINT  NOT NULL AUTO_INCREMENT,
-    appName varchar(255) NOT NULL,
-    appType varchar(255) NOT NULL,
-    userId MEDIUMINT NOT NULL,
-    primary key (appId),
-    foreign key (userId) REFERENCES users (userId)
-);`;
-let filesTable = `CREATE TABLE files (
-    fileId MEDIUMINT  NOT NULL AUTO_INCREMENT,
-    userId MEDIUMINT NOT NULL,
-    appId MEDIUMINT not NULL,
-    fileName varchar(255) NOT NULL,
-    fileExtension varchar(255) NOT NULL,
-    s3Key varChar(255) NOT NULL,
-    primary key (fileId),
-    foreign key (userId) REFERENCES users (userId),
-    foreign key (appId) REFERENCES apps (appId)
-);`;
-class PasswordManager {
-    constructor() { }
-    randomString(length) {
-        let result = '';
-        const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-        const charactersLength = characters.length;
-        let counter = 0;
-        while (counter < length) {
-            result += characters.charAt(Math.floor(Math.random() * charactersLength));
-            counter += 1;
-        }
-        return result;
-    }
-    getHash(saltedPassword) {
-        return Crypto.createHash('md5').update(saltedPassword).digest('hex');
-    }
-}
-exports.PasswordManager = PasswordManager;
-class codeStorageDatabase extends server_1.Database {
-    constructor() {
-        super();
-        this.passwordManager = new PasswordManager();
-    }
-    createTables() {
-        return this._query(usersTable)
-            .then(() => {
-            this._query(appTable)
-                .then(() => {
-                this._query(filesTable);
-            });
-        });
-    }
-    _createUser(username, email, password) {
-        const salt = this.passwordManager.randomString(25);
-        const saltedPassword = `${password}${salt}`;
-        this._query(`insert into users(username,email,sessionCookie,password,salt)values("${username}","${email}","no session","${this.passwordManager.getHash(saltedPassword)}","${salt}")`);
-    }
-    _createDatabase() {
-        this.createTables();
-        return;
-    }
-    _deleteDatabase(databaseName) {
-        try {
-            this._query(`drop database ${databaseName};`);
-        }
-        catch (error) {
-            return;
-        }
-    }
-    _storeNewFile(fileName, fileExtension, userId, appId, s3Key) {
-        return this._query(`insert into files(userId, appID, fileName,fileExtension, s3Key)values(${userId}, ${appId},"${fileName}","${fileExtension}","${s3Key}")`);
-    }
-    _saveFile(fileName, fileExtension, userId, fileId) {
-        return this._query(`update files set fileName = "${fileName}", fileExtension = "${fileExtension}" where userId = ${userId} and fileId = ${fileId};`);
-    }
-    _loadFile(userId, fileId) {
-        return this._query(`select * from files where userId = ${userId} and fileId = ${fileId};`);
-    }
-    _getFiles(userId, appId) {
-        return this._query(`select * from files where userId = ${userId} and appId = ${appId};`);
-    }
-    _storeNewApp(appName, userId, appType) {
-        return this._query(`insert into apps(appName,userId,appType)values("${appName}", ${userId}, "${appType}")`);
-    }
-    _getApps(userId) {
-        return this._query(`select * from apps where userId = ${userId}`);
-    }
-    _validateUser(username, password) {
-        return this._query(`select password, salt, userId from users where username = "${username}"`);
-    }
-    _setSession(userId, username, token) {
-        return this._query(`update users set sessionCookie = "${token}" where userId = ${userId} and username = "${username}";`);
-    }
-    _delete(fileId) {
-        return this._query(`delete from files where fileId = ${fileId}`);
-    }
-    _validateToken(token) {
-        return this._query(`select userId from users where sessionCookie = "${token}"`);
-    }
-}
+const passwordManager_1 = require("./passwordManager");
+const database_1 = require("./database");
+const child_process_1 = require("child_process");
 class apiService extends server_1.Server {
     constructor() {
         super();
-        this.database = new codeStorageDatabase();
-        this.passwordManager = new PasswordManager();
+        this.database = new database_1.CMSDatabase();
+        this.passwordManager = new passwordManager_1.PasswordManager();
         this.defineEditorEndpoints();
         this.s3Bucket = new AWS.S3({
             accessKeyId: process.env.AWS_ACCESSKEY,
@@ -192,40 +86,38 @@ class apiService extends server_1.Server {
                     console.log('There was an error');
                     return;
                 }
-                //////////////////
                 // Execute Python Script here to upload file as alternative
-                // exec(`python upload.py ${s3Key} ${accessKey} ${secretKey} ${bucketName} ${fileName} ${contentType}`, (error, stdout, stderr) => {
-                //     if (error) {
-                //       console.log(`error: ${error.message}`);
-                //     }
-                //     else if (stderr) {
-                //       console.log(`stderr: ${stderr}`);
-                //     }
-                //     else {
-                //       console.log(stdout);
-                //     }
-                // })
-                /////////////////
-                let s3Bucket = new AWS.S3({
-                    accessKeyId: accessKey,
-                    secretAccessKey: secretKey
+                (0, child_process_1.exec)(`python upload.py ${s3Key} ${accessKey} ${secretKey} ${bucketName} ${fileName} ${contentType}`, (error, stdout, stderr) => {
+                    if (error) {
+                        console.log(`error: ${error.message}`);
+                    }
+                    else if (stderr) {
+                        console.log(`stderr: ${stderr}`);
+                    }
+                    else {
+                        console.log(stdout);
+                    }
                 });
-                const readStream = fs_1.default.createReadStream(s3Key);
-                const params = {
-                    Bucket: bucketName,
-                    Key: fileName,
-                    Body: readStream,
-                    content: contentType
-                };
-                return new Promise((resolve, reject) => {
-                    s3Bucket.upload(params, function (err, data) {
-                        readStream.destroy();
-                        if (err) {
-                            return reject(err);
-                        }
-                        return resolve(data);
-                    });
-                });
+                // let s3Bucket = new AWS.S3({
+                //     accessKeyId: accessKey,
+                //     secretAccessKey: secretKey
+                // });
+                // const readStream = fs.createReadStream(s3Key);
+                // const params = {
+                //     Bucket: bucketName,
+                //     Key: fileName,
+                //     Body: readStream,
+                //     content: contentType
+                // };
+                // return new Promise((resolve, reject) => {
+                //     s3Bucket.upload(params, function(err: Error, data: any) {
+                //         readStream.destroy();
+                //         if (err) {
+                //             return reject(err);
+                //         }
+                //         return resolve(data);
+                //     });
+                // });
             });
         });
     }
@@ -517,6 +409,8 @@ class apiService extends server_1.Server {
         this.app.get('/view/:fileId', server_2.jsonParser, (req, res) => {
             const fileId = req.params.fileId;
             this.database._query(`select * from files where fileId = ${fileId}`).then((rows) => {
+                if (rows.length === 0)
+                    res.sendStatus(404);
                 if (rows[0].fileExtension === 'css')
                     res.setHeader('content-type', 'text/css');
                 if (rows[0].fileExtension === 'js')
