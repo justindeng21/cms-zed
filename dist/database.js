@@ -74,6 +74,9 @@ class CMSDatabase extends server_1.Database {
     _getFiles(userId, appId) {
         return this._query(`select * from files where userId = ${userId} and appId = ${appId};`);
     }
+    _delete(fileId) {
+        return this._query(`delete from files where fileId = ${fileId}`);
+    }
     _storeNewApp(appName, userId, appType) {
         return this._query(`insert into apps(appName,userId,appType)values("${appName}", ${userId}, "${appType}")`);
     }
@@ -85,9 +88,6 @@ class CMSDatabase extends server_1.Database {
     }
     _setSession(userId, username, token) {
         return this._query(`update users set sessionCookie = "${token}" where userId = ${userId} and username = "${username}";`);
-    }
-    _delete(fileId) {
-        return this._query(`delete from files where fileId = ${fileId}`);
     }
     _validateToken(token) {
         return this._query(`select userId from users where sessionCookie = "${token}"`);
