@@ -89,6 +89,9 @@ class CMSDatabase extends server_1.Database {
     _setSession(userId, username, token) {
         return this._query(`update users set sessionCookie = "${token}" where userId = ${userId} and username = "${username}";`);
     }
+    _endSession(userId) {
+        return this._query(`update users set sessionCookie = "null" where userId = ${userId};`);
+    }
     _validateToken(token) {
         return this._query(`select userId from users where sessionCookie = "${token}"`);
     }

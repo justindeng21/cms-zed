@@ -129,57 +129,6 @@ class apiService extends server_1.Server {
         
         /////////////////////////////////////////////////////////////////////////////////////////////////////
         */
-        this.app.post('/app', server_2.jsonParser, (req, res) => {
-            if (req.headers.cookie === undefined) {
-                res.sendStatus(401);
-            }
-            else {
-                this.database._validateToken(this.validateSession(req.headers.cookie.split('; '))).then((rows) => {
-                    const appId = req.body.appId;
-                    if (rows.length !== 0) {
-                        this.database._getFiles(rows[0].userId, Number(appId)).then((rows) => {
-                            res.send(rows);
-                        });
-                    }
-                    else
-                        res.sendStatus(401);
-                });
-            }
-        });
-        /*
-        /////////////////////////////////////////////////////////////////////////////////////////////////////
-
-
-
-        
-        /////////////////////////////////////////////////////////////////////////////////////////////////////
-        */
-        this.app.post('/app/new', server_2.jsonParser, (req, res) => {
-            if (req.headers.cookie === undefined) {
-                res.sendStatus(401);
-            }
-            else {
-                this.database._validateToken(this.validateSession(req.headers.cookie.split('; '))).then((rows) => {
-                    const appName = req.body.appName;
-                    const appType = req.body.appType;
-                    if (rows.length !== 0) {
-                        this.database._storeNewApp(appName, rows[0].userId, appType).then((rows) => {
-                            res.send(rows);
-                        });
-                    }
-                    else
-                        res.sendStatus(401);
-                });
-            }
-        });
-        /*
-        /////////////////////////////////////////////////////////////////////////////////////////////////////
-
-
-
-        
-        /////////////////////////////////////////////////////////////////////////////////////////////////////
-        */
         this.app.post('/user/new', server_2.jsonParser, (req, res) => {
             const username = req.body.username;
             const password = req.body.password;
@@ -210,28 +159,6 @@ class apiService extends server_1.Server {
                         res.sendStatus(401);
                 });
             }
-        });
-        /*
-        /////////////////////////////////////////////////////////////////////////////////////////////////////
-
-
-
-        
-        /////////////////////////////////////////////////////////////////////////////////////////////////////
-        */
-        this.app.post('/auth', server_2.jsonParser, (req, res) => {
-            const username = req.body.username;
-            const password = req.body.password;
-            this.database._validateUser(username, password).then((rows) => {
-                if (rows[0].password === this.passwordManager.getHash(`${password}${rows[0].salt}`)) {
-                    const token = this.passwordManager.randomString(15);
-                    res.cookie('zeroAuth', token, { httpOnly: false });
-                    res.sendStatus(204);
-                    this.database._setSession(rows[0].userId, username, this.passwordManager.getHash(token));
-                }
-                else
-                    res.sendStatus(401);
-            });
         });
         /*
         /////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -431,6 +358,69 @@ class apiService extends server_1.Server {
         
         /////////////////////////////////////////////////////////////////////////////////////////////////////
         */
+        this.app.post('/auth', server_2.jsonParser, (req, res) => {
+            const username = req.body.username;
+            const password = req.body.password;
+            this.database._validateUser(username, password).then((rows) => {
+                if (rows[0].password === this.passwordManager.getHash(`${password}${rows[0].salt}`)) {
+                    const token = this.passwordManager.randomString(15);
+                    res.cookie('zeroAuth', token, { httpOnly: false });
+                    res.sendStatus(204);
+                    this.database._setSession(rows[0].userId, username, this.passwordManager.getHash(token));
+                }
+                else
+                    res.sendStatus(401);
+            });
+        });
+        /*
+        /////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+
+        
+        /////////////////////////////////////////////////////////////////////////////////////////////////////
+        */
+        this.app.post('/logout', server_2.jsonParser, (req, res) => {
+            if (req.headers.cookie === undefined) {
+                res.sendStatus(401);
+            }
+            else {
+                this.database._validateToken(this.validateSession(req.headers.cookie.split('; '))).then((rows) => {
+                    if (rows.length !== 0) {
+                        this.database._endSession(rows[0].userId);
+                        res.sendStatus(204);
+                    }
+                    else
+                        res.sendStatus(401);
+                });
+            }
+        });
+        /*
+        /////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+
+        
+        /////////////////////////////////////////////////////////////////////////////////////////////////////
+        */
+        this.app.post('/app/new', server_2.jsonParser, (req, res) => {
+            if (req.headers.cookie === undefined) {
+                res.sendStatus(401);
+            }
+            else {
+                this.database._validateToken(this.validateSession(req.headers.cookie.split('; '))).then((rows) => {
+                    const appName = req.body.appName;
+                    const appType = req.body.appType;
+                    if (rows.length !== 0) {
+                        this.database._storeNewApp(appName, rows[0].userId, appType).then((rows) => {
+                            res.send(rows);
+                        });
+                    }
+                    else
+                        res.sendStatus(401);
+                });
+            }
+        });
         this.app.get('/css/:fileName', server_2.jsonParser, (req, res) => {
             let fileName = req.params.fileName;
             res.sendFile('css/' + fileName, { root: __dirname });
