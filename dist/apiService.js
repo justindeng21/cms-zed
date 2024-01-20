@@ -141,6 +141,8 @@ class apiService extends server_1.Server {
 
 
 
+
+
         
         /////////////////////////////////////////////////////////////////////////////////////////////////////
         */
@@ -152,6 +154,23 @@ class apiService extends server_1.Server {
                 this.database._validateToken(this.validateSession(req.headers.cookie.split('; '))).then((rows) => {
                     if (rows.length !== 0) {
                         this.database._getApps(rows[0].userId).then((rows) => {
+                            res.send(rows);
+                        });
+                    }
+                    else
+                        res.sendStatus(401);
+                });
+            }
+        });
+        this.app.post('/app', server_2.jsonParser, (req, res) => {
+            if (req.headers.cookie === undefined) {
+                res.sendStatus(401);
+            }
+            else {
+                this.database._validateToken(this.validateSession(req.headers.cookie.split('; '))).then((rows) => {
+                    const appId = req.body.appId;
+                    if (rows.length !== 0) {
+                        this.database._getFiles(rows[0].userId, Number(appId)).then((rows) => {
                             res.send(rows);
                         });
                     }
