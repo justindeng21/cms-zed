@@ -33,6 +33,7 @@ const fs_1 = __importDefault(require("fs"));
 const AWS = __importStar(require("aws-sdk"));
 const passwordManager_1 = require("./passwordManager");
 const database_1 = require("./database");
+const child_process_1 = require("child_process");
 class apiService extends server_1.Server {
     constructor() {
         super();
@@ -86,37 +87,37 @@ class apiService extends server_1.Server {
                     return;
                 }
                 // Execute Python Script here to upload file as alternative
-                // exec(`python upload.py ${s3Key} ${accessKey} ${secretKey} ${bucketName} ${fileName} ${contentType}`, (error, stdout, stderr) => {
-                //     if (error) {
-                //       console.log(`error: ${error.message}`);
-                //     }
-                //     else if (stderr) {
-                //       console.log(`stderr: ${stderr}`);
-                //     }
-                //     else {
-                //       console.log(stdout);
-                //     }
-                // })
-                let s3Bucket = new AWS.S3({
-                    accessKeyId: accessKey,
-                    secretAccessKey: secretKey
+                (0, child_process_1.exec)(`python upload.py ${s3Key} ${accessKey} ${secretKey} ${bucketName} ${fileName} ${contentType}`, (error, stdout, stderr) => {
+                    if (error) {
+                        console.log(`error: ${error.message}`);
+                    }
+                    else if (stderr) {
+                        console.log(`stderr: ${stderr}`);
+                    }
+                    else {
+                        console.log(stdout);
+                    }
                 });
-                const readStream = fs_1.default.createReadStream(s3Key);
-                const params = {
-                    Bucket: bucketName,
-                    Key: fileName,
-                    Body: readStream,
-                    content_type: contentType
-                };
-                return new Promise((resolve, reject) => {
-                    s3Bucket.upload(params, function (err, data) {
-                        readStream.destroy();
-                        if (err) {
-                            return reject(err);
-                        }
-                        return resolve(data);
-                    });
-                });
+                //    let s3Bucket = new AWS.S3({
+                //        accessKeyId: accessKey,
+                //        secretAccessKey: secretKey
+                //    });
+                //    const readStream = fs.createReadStream(s3Key);
+                //    const params = {
+                //        Bucket: bucketName,
+                //        Key: fileName,
+                //        Body: readStream,
+                //        content_type: contentType
+                //    };
+                //    return new Promise((resolve, reject) => {
+                //        s3Bucket.upload(params, function(err: Error, data: any) {
+                //            readStream.destroy();
+                //            if (err) {
+                //                return reject(err);
+                //           }
+                //            return resolve(data);
+                //        });
+                //    });
             });
         });
     }
@@ -399,7 +400,7 @@ class apiService extends server_1.Server {
         
         /////////////////////////////////////////////////////////////////////////////////////////////////////
         */
-        this.app.post('/logout', server_2.jsonParser, (req, res) => {
+        this.app.get('/logout', server_2.jsonParser, (req, res) => {
             if (req.headers.cookie === undefined) {
                 res.sendStatus(401);
             }
