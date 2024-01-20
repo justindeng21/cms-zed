@@ -77,12 +77,6 @@ class apiService extends server_1.Server {
             }
             this.uploadToS3(s3Key, this.bucketName);
         });
-        fs_1.default.unlink(s3Key, (err) => {
-            if (err) {
-                console.log('Unable to delete file');
-                return;
-            }
-        });
     }
     writeToExternalBucket(accessKey, secretKey, s3Key, fileName, bucketName, contentType) {
         this.s3Bucket.getObject({ Bucket: this.bucketName, Key: s3Key }, function (err, data) {
