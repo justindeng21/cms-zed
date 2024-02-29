@@ -145,6 +145,6 @@ class CMSDatabase extends server_1.Database {
     _getTemplate(userId, templateId) { return this._query(`select * from templates where userId = ${userId} and templateId = ${templateId}`); }
     _getTemplates(userId) { return this._query(`select * from templates where userId = ${userId}`); }
     _deleteTemplate(userId, templateId) { return this._query(`delete from templates where userId = ${userId} and templateId = ${templateId}`); }
-    _updateTemplate(userId, templateId, template, templateName) { return this._query(`update templates set template = "${template}", templateName="${templateName}" where userId = ${userId} and tagId = ${templateId}`); }
+    _updateTemplate(userId, templateId, template, templateName) { return this._query(`update templates set template = "${template}", templateName="${templateName}" where userId = ${userId} and templateId = ${templateId}`); }
 }
 exports.CMSDatabase = CMSDatabase;
