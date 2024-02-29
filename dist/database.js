@@ -116,6 +116,9 @@ class CMSDatabase extends server_1.Database {
     _delete(fileId) {
         return this._query(`delete from files where fileId = ${fileId}`);
     }
+    _deleteAll(appId) {
+        return this._query(`delete from files where appId = ${appId}`);
+    }
     _storeNewApp(appName, userId) {
         return this._query(`insert into apps(appName,userId)values("${appName}", ${userId})`);
     }
