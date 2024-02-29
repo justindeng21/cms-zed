@@ -13,6 +13,9 @@ class CMSAPI extends template_1.TemplateService {
         this.app.get('/content', (req, res) => {
             res.sendFile('/frontend/index.html', { root: __dirname });
         });
+        this.app.get('/template', (req, res) => {
+            res.sendFile('/frontend/index.html', { root: __dirname });
+        });
         this.app.get('/template(/*)', (req, res) => {
             res.sendFile('/frontend/index.html', { root: __dirname });
         });
