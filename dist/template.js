@@ -158,6 +158,24 @@ class TemplateService extends contentService_1.ContentService {
                 });
             }
         });
+        this.app.post('/save/template/:templateId', server_1.jsonParser, (req, res) => {
+            if (req.headers.cookie === undefined) {
+                res.sendStatus(401);
+            }
+            else {
+                this.database._validateToken(this.validateSession(req.headers.cookie.split('; '))).then((rows) => {
+                    const template = encodeURIComponent(JSON.stringify(req.body)).replace(/'/g, "%27");
+                    const templateName = req.body.metaData.name;
+                    const templateId = req.params.templateId;
+                    if (rows.length !== 0) {
+                        this.database._updateTemplate(rows[0].userId, Number(templateId), template, templateName);
+                        res.sendStatus(204);
+                    }
+                    else
+                        res.sendStatus(401);
+                });
+            }
+        });
     }
 }
 exports.TemplateService = TemplateService;

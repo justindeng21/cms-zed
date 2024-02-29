@@ -68,5 +68,3 @@ CREATE table templates (
     primary key (templateId),
     foreign key (userId) REFERENCES users (userId)
 );
-
-show tables;
