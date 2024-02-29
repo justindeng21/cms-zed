@@ -26,31 +26,26 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.apiService = void 0;
-const server_1 = require("./server");
-const server_2 = require("./server");
+exports.FileService = void 0;
 const fs_1 = __importDefault(require("fs"));
+const authService_1 = require("./authService");
 const AWS = __importStar(require("aws-sdk"));
-const passwordManager_1 = require("./passwordManager");
-const database_1 = require("./database");
-class apiService extends server_1.Server {
+const server_1 = require("./server");
+class FileService extends authService_1.AuthService {
     constructor() {
         super();
-        this.database = new database_1.CMSDatabase();
-        this.passwordManager = new passwordManager_1.PasswordManager();
-        this.defineEditorEndpoints();
-        this.s3Bucket = new AWS.S3({
-            accessKeyId: process.env.AWS_ACCESSKEY,
-            secretAccessKey: process.env.AWS_SECRETKEY
-        });
-        this.bucketName = 'testbackup-corelogic';
+        this.defineFileEndpoints();
     }
-    validateSession(cookies) {
-        for (let i = 0; i <= cookies.length - 1; i++) {
-            if (cookies[i].split('=')[0] === 'zeroAuth')
-                return this.passwordManager.getHash(cookies[i].split('=')[1]);
-        }
-        return '';
+    writeFile(s3Key, code) {
+        fs_1.default.writeFile(s3Key, code, (err) => {
+            if (err) {
+                console.log('There was an error');
+                return;
+            }
+            this.uploadToS3(s3Key, this.bucketName).then(() => {
+                fs_1.default.unlinkSync(s3Key);
+            });
+        });
     }
     uploadToS3(s3Key, bucketName) {
         const readStream = fs_1.default.createReadStream(s3Key);
@@ -60,7 +55,7 @@ class apiService extends server_1.Server {
             Body: readStream
         };
         return new Promise((resolve, reject) => {
-            this.s3Bucket.upload(params, function (err, data) {
+            this.fileStorage.upload(params, function (err, data) {
                 readStream.destroy();
                 if (err) {
                     return reject(err);
@@ -69,17 +64,8 @@ class apiService extends server_1.Server {
             });
         });
     }
-    writeFile(s3Key, code) {
-        fs_1.default.writeFile(s3Key, code, (err) => {
-            if (err) {
-                console.log('There was an error');
-                return;
-            }
-            this.uploadToS3(s3Key, this.bucketName);
-        });
-    }
     writeToExternalBucket(accessKey, secretKey, s3Key, fileName, bucketName, contentType) {
-        this.s3Bucket.getObject({ Bucket: this.bucketName, Key: s3Key }, function (err, data) {
+        this.fileStorage.getObject({ Bucket: this.bucketName, Key: s3Key }, function (err, data) {
             fs_1.default.writeFile(s3Key, data.Body.toString('utf-8'), (err) => {
                 if (err) {
                     console.log('There was an error');
@@ -108,49 +94,24 @@ class apiService extends server_1.Server {
             });
         });
     }
-    defineEditorEndpoints() {
-        /*
-        /////////////////////////////////////////////////////////////////////////////////////////////////////
-
-
-
-        
-        /////////////////////////////////////////////////////////////////////////////////////////////////////
-        */
-        this.app.post('/user/new', server_2.jsonParser, (req, res) => {
-            const username = req.body.username;
-            const password = req.body.password;
-            const email = req.body.email;
-            this.database._createUser(username, email, password);
-            res.send(204);
-        });
-        /*
-        /////////////////////////////////////////////////////////////////////////////////////////////////////
-
-
-
-
-
-        
-        /////////////////////////////////////////////////////////////////////////////////////////////////////
-        */
-        this.app.get('/apps', server_2.jsonParser, (req, res) => {
+    defineFileEndpoints() {
+        this.app.post('/app/new', server_1.jsonParser, (req, res) => {
             if (req.headers.cookie === undefined) {
                 res.sendStatus(401);
             }
             else {
                 this.database._validateToken(this.validateSession(req.headers.cookie.split('; '))).then((rows) => {
+                    const appName = req.body.appName;
                     if (rows.length !== 0) {
-                        this.database._getApps(rows[0].userId).then((rows) => {
-                            res.send(rows);
-                        });
+                        this.database._storeNewApp(appName, rows[0].userId);
+                        res.sendStatus(204);
                     }
                     else
                         res.sendStatus(401);
                 });
             }
         });
-        this.app.post('/app', server_2.jsonParser, (req, res) => {
+        this.app.post('/app', server_1.jsonParser, (req, res) => {
             if (req.headers.cookie === undefined) {
                 res.sendStatus(401);
             }
@@ -167,15 +128,23 @@ class apiService extends server_1.Server {
                 });
             }
         });
-        /*
-        /////////////////////////////////////////////////////////////////////////////////////////////////////
-
-
-
-        
-        /////////////////////////////////////////////////////////////////////////////////////////////////////
-        */
-        this.app.post('/load', server_2.jsonParser, (req, res) => {
+        this.app.get('/apps', server_1.jsonParser, (req, res) => {
+            if (req.headers.cookie === undefined) {
+                res.sendStatus(401);
+            }
+            else {
+                this.database._validateToken(this.validateSession(req.headers.cookie.split('; '))).then((rows) => {
+                    if (rows.length !== 0) {
+                        this.database._getApps(rows[0].userId).then((rows) => {
+                            res.send(rows);
+                        });
+                    }
+                    else
+                        res.sendStatus(401);
+                });
+            }
+        });
+        this.app.post('/load', server_1.jsonParser, (req, res) => {
             if (req.headers.cookie === undefined) {
                 res.sendStatus(401);
             }
@@ -188,7 +157,7 @@ class apiService extends server_1.Server {
                     this.database._validateToken(this.validateSession(req.headers.cookie.split('; '))).then((rows) => {
                         if (rows.length !== 0) {
                             this.database._loadFile(rows[0].userId, Number(fileId)).then((rows) => {
-                                this.s3Bucket.getObject({ Bucket: this.bucketName, Key: rows[0].s3Key }, function (err, data) {
+                                this.fileStorage.getObject({ Bucket: this.bucketName, Key: rows[0].s3Key }, function (err, data) {
                                     res.setHeader('content-type', 'application/json');
                                     res.send(JSON.stringify({ fileName: rows[0].fileName, content: encodeURIComponent(data.Body.toString('utf-8')) }));
                                 });
@@ -200,15 +169,7 @@ class apiService extends server_1.Server {
                 }
             }
         });
-        /*
-        /////////////////////////////////////////////////////////////////////////////////////////////////////
-
-
-
-        
-        /////////////////////////////////////////////////////////////////////////////////////////////////////
-        */
-        this.app.post('/build', server_2.jsonParser, (req, res) => {
+        this.app.post('/build', server_1.jsonParser, (req, res) => {
             if (req.headers.cookie === undefined) {
                 res.sendStatus(401);
             }
@@ -237,15 +198,7 @@ class apiService extends server_1.Server {
                 });
             }
         });
-        /*
-        /////////////////////////////////////////////////////////////////////////////////////////////////////
-
-
-
-        
-        /////////////////////////////////////////////////////////////////////////////////////////////////////
-        */
-        this.app.post('/save/', server_2.jsonParser, (req, res) => {
+        this.app.post('/save/', server_1.jsonParser, (req, res) => {
             if (req.headers.cookie === undefined) {
                 res.sendStatus(401);
             }
@@ -270,15 +223,7 @@ class apiService extends server_1.Server {
                 });
             }
         });
-        /*
-        /////////////////////////////////////////////////////////////////////////////////////////////////////
-
-
-
-        
-        /////////////////////////////////////////////////////////////////////////////////////////////////////
-        */
-        this.app.post('/delete/', server_2.jsonParser, (req, res) => {
+        this.app.post('/delete/', server_1.jsonParser, (req, res) => {
             if (req.headers.cookie === undefined) {
                 res.sendStatus(401);
             }
@@ -290,7 +235,7 @@ class apiService extends server_1.Server {
                     if (rows.length !== 0) {
                         const fileId = req.body.fileId;
                         this.database._loadFile(rows[0].userId, fileId).then((rows) => {
-                            this.s3Bucket.deleteObject({ Bucket: this.bucketName, Key: rows[0].s3Key }, function (err, data) {
+                            this.fileStorage.deleteObject({ Bucket: this.bucketName, Key: rows[0].s3Key }, function (err, data) {
                                 if (err)
                                     console.log(err, err.stack); // error
                                 else
@@ -305,20 +250,18 @@ class apiService extends server_1.Server {
                 });
             }
         });
-        /*
-        /////////////////////////////////////////////////////////////////////////////////////////////////////
-
-
-
-        
-        /////////////////////////////////////////////////////////////////////////////////////////////////////
-        */
-        this.app.post('/new/', server_2.jsonParser, (req, res) => {
+        this.app.post('/new/', server_1.jsonParser, (req, res) => {
             if (req.headers.cookie === undefined) {
                 res.sendStatus(401);
             }
             else {
-                const fileName = req.body.fileName, code = req.body.code, appId = req.body.appId, fileExtension = req.body.fileExtension, paths = fileName.split('/'), parseFileName = paths[paths.length - 1], s3Key = `${this.passwordManager.getHash(this.passwordManager.randomString(5))}-${parseFileName}`;
+                const fileName = req.body.fileName;
+                const code = req.body.code;
+                const appId = req.body.appId;
+                const fileExtension = req.body.fileExtension;
+                const paths = fileName.split('/');
+                const parseFileName = paths[paths.length - 1];
+                const s3Key = `${this.passwordManager.getHash(this.passwordManager.randomString(5))}-${parseFileName}`;
                 this.database._validateToken(this.validateSession(req.headers.cookie.split('; '))).then((rows) => {
                     if (rows.length !== 0) {
                         this.database._storeNewFile(fileName, fileExtension, rows[0].userId, appId, s3Key).then(() => {
@@ -331,15 +274,7 @@ class apiService extends server_1.Server {
                 });
             }
         });
-        /*
-        /////////////////////////////////////////////////////////////////////////////////////////////////////
-
-
-
-        
-        /////////////////////////////////////////////////////////////////////////////////////////////////////
-        */
-        this.app.get('/view/:fileId', server_2.jsonParser, (req, res) => {
+        this.app.get('/view/:fileId', server_1.jsonParser, (req, res) => {
             const fileId = req.params.fileId;
             this.database._query(`select * from files where fileId = ${fileId}`).then((rows) => {
                 if (rows.length === 0)
@@ -351,129 +286,12 @@ class apiService extends server_1.Server {
                 if (rows[0].fileExtension === 'html')
                     res.setHeader('content-type', 'text/html');
                 this.database._loadFile(rows[0].userId, Number(fileId)).then((rows) => {
-                    this.s3Bucket.getObject({ Bucket: this.bucketName, Key: rows[0].s3Key }, function (err, data) {
+                    this.fileStorage.getObject({ Bucket: this.bucketName, Key: rows[0].s3Key }, function (err, data) {
                         res.send(data.Body.toString('utf-8'));
                     });
                 });
             });
         });
-        /*
-        /////////////////////////////////////////////////////////////////////////////////////////////////////
-
-
-
-        
-        /////////////////////////////////////////////////////////////////////////////////////////////////////
-        */
-        this.app.post('/auth', server_2.jsonParser, (req, res) => {
-            const username = req.body.username;
-            const password = req.body.password;
-            this.database._validateUser(username, password).then((rows) => {
-                if (rows[0].password === this.passwordManager.getHash(`${password}${rows[0].salt}`)) {
-                    const token = this.passwordManager.randomString(15);
-                    res.cookie('zeroAuth', token, { httpOnly: false });
-                    res.sendStatus(204);
-                    this.database._setSession(rows[0].userId, username, this.passwordManager.getHash(token));
-                }
-                else
-                    res.sendStatus(401);
-            });
-        });
-        /*
-        /////////////////////////////////////////////////////////////////////////////////////////////////////
-
-
-
-        
-        /////////////////////////////////////////////////////////////////////////////////////////////////////
-        */
-        this.app.get('/logout', server_2.jsonParser, (req, res) => {
-            if (req.headers.cookie === undefined) {
-                res.sendStatus(401);
-            }
-            else {
-                this.database._validateToken(this.validateSession(req.headers.cookie.split('; '))).then((rows) => {
-                    if (rows.length !== 0) {
-                        this.database._endSession(rows[0].userId);
-                        res.sendStatus(204);
-                    }
-                    else
-                        res.sendStatus(401);
-                });
-            }
-        });
-        /*
-        /////////////////////////////////////////////////////////////////////////////////////////////////////
-
-
-
-        
-        /////////////////////////////////////////////////////////////////////////////////////////////////////
-        */
-        this.app.post('/app/new', server_2.jsonParser, (req, res) => {
-            if (req.headers.cookie === undefined) {
-                res.sendStatus(401);
-            }
-            else {
-                this.database._validateToken(this.validateSession(req.headers.cookie.split('; '))).then((rows) => {
-                    const appName = req.body.appName;
-                    const appType = req.body.appType;
-                    if (rows.length !== 0) {
-                        this.database._storeNewApp(appName, rows[0].userId, appType).then((rows) => {
-                            res.send(rows);
-                        });
-                    }
-                    else
-                        res.sendStatus(401);
-                });
-            }
-        });
-        this.app.get('/css/:fileName', server_2.jsonParser, (req, res) => {
-            let fileName = req.params.fileName;
-            res.sendFile('css/' + fileName, { root: __dirname });
-        });
-        /*
-        /////////////////////////////////////////////////////////////////////////////////////////////////////
-
-
-
-        
-        /////////////////////////////////////////////////////////////////////////////////////////////////////
-        */
-        this.app.get('/js/:fileName', server_2.jsonParser, (req, res) => {
-            let fileName = req.params.fileName;
-            res.sendFile('js/' + fileName, { root: __dirname });
-        });
-        /*
-        /////////////////////////////////////////////////////////////////////////////////////////////////////
-
-
-
-        
-        /////////////////////////////////////////////////////////////////////////////////////////////////////
-        */
-        this.app.get('/assets/:fileName', (req, res) => {
-            res.sendFile(`/frontend/assets/${req.params.fileName}`, { root: __dirname });
-        });
-        //Database Operations
-        this.app.get('/ddb', server_2.jsonParser, (req, res) => {
-            try {
-                this.database._deleteDatabase('codeStorage');
-                res.sendStatus(200);
-            }
-            catch (error) {
-                res.sendStatus(502);
-            }
-        });
-        this.app.get('/cdb', server_2.jsonParser, (req, res) => {
-            try {
-                this.database._createDatabase();
-                res.sendStatus(200);
-            }
-            catch (error) {
-                res.sendStatus(502);
-            }
-        });
     }
 }
-exports.apiService = apiService;
+exports.FileService = FileService;

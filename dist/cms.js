@@ -1,13 +1,19 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-const apiService_1 = require("./apiService");
-class CMSAPI extends apiService_1.apiService {
+const template_1 = require("./template");
+class CMSAPI extends template_1.TemplateService {
     constructor() {
         super();
         this.defineCMSEndpoints();
     }
     defineCMSEndpoints() {
         this.app.get('/cms', (req, res) => {
+            res.sendFile('/frontend/index.html', { root: __dirname });
+        });
+        this.app.get('/content', (req, res) => {
+            res.sendFile('/frontend/index.html', { root: __dirname });
+        });
+        this.app.get('/template(/*)', (req, res) => {
             res.sendFile('/frontend/index.html', { root: __dirname });
         });
         this.app.get('/cms(/*)', (req, res) => {

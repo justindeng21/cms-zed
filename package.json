@@ -4,8 +4,8 @@
     "description": "",
     "main": "endpoints.js",
     "scripts": {
-        "startDevServer": "nodemon dev/endpoints.ts",
-        "startServer": "node dist/endpoints.js",
+        "startDevServer": "nodemon dev/cms.ts --ignore *.json",
+        "startServer": "node dist/cms.js",
         "deploy": "npm run localbuild && git add . && git commit -m \"auto-deploy\" && git push origin main",
         "localbuild": "tsc && cd textEditor && npm run build",
         "buildt": "cd textEditor && npm run build && cd ../ && npm run startDevServer",
