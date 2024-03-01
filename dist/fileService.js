@@ -68,7 +68,7 @@ class FileService extends authService_1.AuthService {
         this.fileStorage.getObject({ Bucket: this.bucketName, Key: s3Key }, function (err, data) {
             fs_1.default.writeFile(s3Key, data.Body.toString('utf-8'), (err) => {
                 if (err) {
-                    console.log('There was an error');
+                    console.log('There was an error storing the file');
                     return;
                 }
                 let s3Bucket = new AWS.S3({
