@@ -274,6 +274,21 @@ class FileService extends authService_1.AuthService {
                 });
             }
         });
+        this.app.post('/upload/', server_1.jsonParser, (req, res) => {
+            if (req.headers.cookie === undefined) {
+                res.sendStatus(401);
+            }
+            else {
+                this.database._validateToken(this.validateSession(req.headers.cookie.split('; '))).then((rows) => {
+                    if (rows.length !== 0) {
+                        console.log(req.body);
+                        res.sendStatus(204);
+                    }
+                    else
+                        res.sendStatus(401);
+                });
+            }
+        });
         this.app.get('/view/:fileId', server_1.jsonParser, (req, res) => {
             const fileId = req.params.fileId;
             this.database._query(`select * from files where fileId = ${fileId}`).then((rows) => {
