@@ -71,8 +71,8 @@ class Server {
         }));
         this.server = this.app.listen(process.env.PORT || 3400, () => console.log("server running"));
         this.fileStorage = new AWS.S3({
-            accessKeyId: 'AKIAZVRIAJALS4WGAJ6Z', //process.env.AWS_ACCESSKEY,
-            secretAccessKey: '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' //process.env.AWS_SECRETKEY
+            accessKeyId: process.env.AWS_ACCESSKEY,
+            secretAccessKey: process.env.AWS_SECRETKEY
         });
         this.bucketName = 'cms-zed';
     }
