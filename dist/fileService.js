@@ -277,6 +277,7 @@ class FileService extends authService_1.AuthService {
         this.app.get('/view/:fileId', server_1.jsonParser, (req, res) => {
             const fileId = req.params.fileId;
             this.database._query(`select * from files where fileId = ${fileId}`).then((rows) => {
+                console.log(rows);
                 if (rows.length === 0)
                     res.sendStatus(404);
                 else if (rows[0].fileExtension === 'css')
