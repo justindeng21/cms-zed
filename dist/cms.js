@@ -33,6 +33,9 @@ class CMSAPI extends template_1.TemplateService {
                 });
             }
         });
+        this.app.get('/', (req, res) => {
+            res.redirect('/cms');
+        });
     }
 }
 const cms = new CMSAPI();
