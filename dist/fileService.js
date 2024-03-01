@@ -279,12 +279,14 @@ class FileService extends authService_1.AuthService {
             this.database._query(`select * from files where fileId = ${fileId}`).then((rows) => {
                 if (rows.length === 0)
                     res.sendStatus(404);
-                if (rows[0].fileExtension === 'css')
+                else if (rows[0].fileExtension === 'css')
                     res.setHeader('content-type', 'text/css');
-                if (rows[0].fileExtension === 'js')
+                else if (rows[0].fileExtension === 'js')
                     res.setHeader('content-type', 'application/javascript');
-                if (rows[0].fileExtension === 'html')
+                else if (rows[0].fileExtension === 'html')
                     res.setHeader('content-type', 'text/html');
+                else
+                    res.sendStatus(404);
                 this.database._loadFile(rows[0].userId, Number(fileId)).then((rows) => {
                     this.fileStorage.getObject({ Bucket: this.bucketName, Key: rows[0].s3Key }, function (err, data) {
                         res.send(data.Body.toString('utf-8'));
