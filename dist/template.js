@@ -27,7 +27,7 @@ class PageCreator {
         return `<footer id="siteFooter"><p>${footerInnerHtml}</p></footer>`;
     }
     getBody(links, bodyInnerHtml, pageName, footer) {
-        return `<body>\n${this.getNavBar(links).replace(/^/gm, "\t\t")}\n\t\t<div id="content"><h1 id="pageheading">${pageName}</h1>\n${bodyInnerHtml.replace(/^/gm, "\t\t")}\n${this.getFooter(footer).replace(/^/gm, "\t\t")}\n</div>\n</body>`.replace(/^/gm, "\t\t");
+        return `<body>\n${this.getNavBar(links).replace(/^/gm, "\t\t")}\n\t\t<div id="content"><h1 id="pageheading">${pageName}</h1>\n${bodyInnerHtml.replace(/^/gm, "\t\t")}\n${this.getFooter(footer).replace(/^/gm, "\t\t")}\n\t\t</div>\n\t\t</body>`.replace(/^/gm, "\t\t");
     }
 }
 exports.PageCreator = PageCreator;
