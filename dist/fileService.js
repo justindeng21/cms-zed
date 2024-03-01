@@ -281,7 +281,9 @@ class FileService extends authService_1.AuthService {
             else {
                 this.database._validateToken(this.validateSession(req.headers.cookie.split('; '))).then((rows) => {
                     if (rows.length !== 0) {
-                        this.writeFile('testupload.js', req.body.file);
+                        //    this.writeFile('testupload.js',req.body.file);
+                        const buffer = Buffer.from('hello world');
+                        console.log(buffer);
                         res.sendStatus(204);
                     }
                     else
