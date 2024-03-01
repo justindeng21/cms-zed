@@ -14,14 +14,14 @@ class PageCreator {
         return `<div class="nav">${innerHtml}</div>`;
     }
     getHead(scripts, styles, pageName) {
-        let innerHtml = `<title>${pageName}</title>\n`;
+        let innerHtml = `<title>${pageName}</title>\n\t`;
         for (let i = 0; i <= scripts.length - 1; i++) {
             innerHtml = innerHtml + decodeURIComponent(scripts[i]) + '\n';
         }
         for (let i = 0; i <= styles.length - 1; i++) {
             innerHtml = '\t' + innerHtml + decodeURIComponent(styles[i]);
         }
-        return `\t<head>\n\t${innerHtml}\n</head>`;
+        return `\t<head>\n${innerHtml}\n</head>`;
     }
     getFooter(footerInnerHtml) {
         return `<footer id="siteFooter"><p>${footerInnerHtml}</p></footer>`;
