@@ -14,20 +14,20 @@ class PageCreator {
         return `<div class="nav">${innerHtml}</div>`;
     }
     getHead(scripts, styles, pageName) {
-        let innerHtml = `<title>${pageName}</title>\n\t`;
-        for (let i = 0; i <= scripts.length - 1; i++) {
-            innerHtml = innerHtml + decodeURIComponent(scripts[i]) + '\n';
-        }
+        let innerHtml = `<title>${pageName}</title>\n\n`;
         for (let i = 0; i <= styles.length - 1; i++) {
-            innerHtml = '\t' + innerHtml + decodeURIComponent(styles[i]);
+            innerHtml = innerHtml + decodeURIComponent(styles[i]) + '\n\n';
         }
-        return `\t<head>\n${innerHtml}\n</head>`;
+        for (let i = 0; i <= scripts.length - 1; i++) {
+            innerHtml = innerHtml + decodeURIComponent(scripts[i]) + '\n\n';
+        }
+        return `\t<head>\n${innerHtml.replace(/^/gm, "\t\t")}\n\t</head>`;
     }
     getFooter(footerInnerHtml) {
         return `<footer id="siteFooter"><p>${footerInnerHtml}</p></footer>`;
     }
     getBody(links, bodyInnerHtml, pageName, footer) {
-        return `<body>\n${this.getNavBar(links)}\n<div id="content"><h1 id="pageheading">${pageName}</h1>\n${bodyInnerHtml}\n${this.getFooter(footer)}\n</div>\n</body>`;
+        return `<body>\n${this.getNavBar(links).replace(/^/gm, "\t\t")}\n\t\t<div id="content"><h1 id="pageheading">${pageName}</h1>\n${bodyInnerHtml.replace(/^/gm, "\t\t")}\n${this.getFooter(footer).replace(/^/gm, "\t\t")}\n</div>\n</body>`.replace(/^/gm, "\t\t");
     }
 }
 exports.PageCreator = PageCreator;

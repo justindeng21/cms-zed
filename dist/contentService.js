@@ -11,7 +11,6 @@ class ContentService extends fileService_1.FileService {
         this.pageCreator = new template_1.PageCreator();
     }
     async writeHtml(contents, userId, pageName, appId, template) {
-        console.log(contents);
         let bodyInnerHtml = '';
         for (let i = 0; i <= contents.length - 1; i++) {
             let k = new Promise((resolve, reject) => {
@@ -22,9 +21,7 @@ class ContentService extends fileService_1.FileService {
                     resolve(bodyInnerHtml);
                 });
             });
-            await k.then(() => {
-                console.log('Iteration Done');
-            });
+            await k;
         }
         const s3Key = `${this.passwordManager.getHash(this.passwordManager.randomString(5))}.html`;
         const head = this.pageCreator.getHead(template.scripts, template.styles, pageName);
@@ -187,19 +184,34 @@ class ContentService extends fileService_1.FileService {
                         const appId = req.body.appId;
                         const userId = rows[0].userId;
                         const templateId = req.body.templateId;
-                        this.database._getPages(userId, appId).then((rows) => {
-                            for (let i = 0; i <= rows.length - 1; i++) {
-                                const pageId = rows[i].pageId;
-                                const title = rows[i].title;
-                                this.database._loadContent(userId, pageId).then((rows) => {
-                                    const content = rows;
-                                    this.database._getTemplate(userId, templateId).then((rows) => {
-                                        this.writeHtml(content, userId, title, appId, JSON.parse(decodeURIComponent(rows[0].template)));
+                        this.database._getFiles(userId, appId).then((rows_files) => {
+                            for (let i = 0; i <= rows_files.length - 1; i++) {
+                                this.database._loadFile(userId, rows_files[i].fileId).then((rows) => {
+                                    this.fileStorage.deleteObject({ Bucket: this.bucketName, Key: rows_files[i].s3Key }, function (err, data) {
+                                        if (err)
+                                            console.log(err, err.stack);
+                                        else
+                                            console.log();
                                     });
+                                    this.database._delete(rows_files[i].fileId);
                                 });
                             }
+                        }).then(() => {
+                            this.database._getPages(userId, appId).then((rows) => {
+                                for (let i = 0; i <= rows.length - 1; i++) {
+                                    const pageId = rows[i].pageId;
+                                    const title = rows[i].title;
+                                    this.database._loadContent(userId, pageId).then((rows) => {
+                                        const content = rows;
+                                        this.database._getTemplate(userId, templateId).then((rows) => {
+                                            this.writeHtml(content, userId, title, appId, JSON.parse(decodeURIComponent(rows[0].template)));
+                                        });
+                                    });
+                                }
+                            });
+                        }).then(() => {
+                            res.sendStatus(204);
                         });
-                        res.sendStatus(200);
                     }
                     else
                         res.sendStatus(401);
