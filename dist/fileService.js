@@ -31,6 +31,8 @@ const fs_1 = __importDefault(require("fs"));
 const authService_1 = require("./authService");
 const AWS = __importStar(require("aws-sdk"));
 const server_1 = require("./server");
+const multer_1 = __importDefault(require("multer"));
+const upload = (0, multer_1.default)({ dest: 'uploads/' });
 class FileService extends authService_1.AuthService {
     constructor() {
         super();
@@ -119,7 +121,7 @@ class FileService extends authService_1.AuthService {
                 this.database._validateToken(this.validateSession(req.headers.cookie.split('; '))).then((rows) => {
                     const appId = req.body.appId;
                     if (rows.length !== 0) {
-                        this.database._getFiles(rows[0].userId, Number(appId)).then((rows) => {
+                        this.database._getFiles(rows[0].userId, Number(appId), '').then((rows) => {
                             res.send(rows);
                         });
                     }
@@ -180,7 +182,7 @@ class FileService extends authService_1.AuthService {
                     const accessKey = req.body.accessKey;
                     const bucketName = req.body.bucketName;
                     if (rows.length !== 0) {
-                        this.database._getFiles(rows[0].userId, Number(appId)).then((rows) => {
+                        this.database._getFiles(rows[0].userId, Number(appId), 'false').then((rows) => {
                             for (var i = 0; i <= rows.length - 1; i++) {
                                 let contentType = '';
                                 if (rows[0].fileExtension === 'css')
@@ -264,7 +266,7 @@ class FileService extends authService_1.AuthService {
                 const s3Key = `${this.passwordManager.getHash(this.passwordManager.randomString(5))}-${parseFileName}`;
                 this.database._validateToken(this.validateSession(req.headers.cookie.split('; '))).then((rows) => {
                     if (rows.length !== 0) {
-                        this.database._storeNewFile(fileName, fileExtension, rows[0].userId, appId, s3Key).then(() => {
+                        this.database._storeNewFile(fileName, fileExtension, rows[0].userId, appId, s3Key, 'false').then(() => {
                             this.writeFile(s3Key, code);
                         });
                         res.sendStatus(200);
@@ -274,16 +276,23 @@ class FileService extends authService_1.AuthService {
                 });
             }
         });
-        this.app.post('/upload/', server_1.jsonParser, (req, res) => {
+        this.app.post('/upload/:appId', upload.single('file'), (req, res) => {
             if (req.headers.cookie === undefined) {
                 res.sendStatus(401);
             }
             else {
                 this.database._validateToken(this.validateSession(req.headers.cookie.split('; '))).then((rows) => {
                     if (rows.length !== 0) {
-                        //    this.writeFile('testupload.js',req.body.file);
-                        //const buffer = Buffer.from();
-                        console.log(req.body.file);
+                        const appId = req.params.appId;
+                        fs_1.default.rename(`uploads/${req.file.filename}`, req.file.originalname, function (err) {
+                            if (err)
+                                console.log('ERROR: ' + err);
+                        });
+                        this.database._storeNewFile(req.file.originalname, req.file.originalname.split('.')[1], rows[0].userId, Number(appId), req.file.originalname, 'true').then(() => {
+                            this.uploadToS3(req.file.originalname, this.bucketName).then(() => {
+                                fs_1.default.unlinkSync(req.file.originalname);
+                            });
+                        });
                         res.sendStatus(204);
                     }
                     else
@@ -324,6 +333,18 @@ class FileService extends authService_1.AuthService {
                 }
                 else
                     res.sendStatus(404);
+            });
+        });
+        this.app.get('/site/assets/:fileName', (req, res) => {
+            const key = req.params.fileName;
+            const fileExtension = key.split('.')[1];
+            console.log(key);
+            if (fileExtension === 'css')
+                res.setHeader('content-type', 'text/css');
+            if (fileExtension === 'js')
+                res.setHeader('content-type', 'application/javascript');
+            this.fileStorage.getObject({ Bucket: this.bucketName, Key: key }, function (err, data) {
+                res.send(data.Body.toString('utf-8'));
             });
         });
     }

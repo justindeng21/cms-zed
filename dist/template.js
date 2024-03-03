@@ -13,8 +13,14 @@ class PageCreator {
         }
         return `<div class="nav">${innerHtml}</div>`;
     }
-    getHead(scripts, styles, pageName) {
+    getHead(scripts, styles, pageName, uploadedFiles) {
         let innerHtml = `<title>${pageName}</title>\n\n`;
+        for (let i = 0; i <= uploadedFiles.length - 1; i++) {
+            if (uploadedFiles[i].fileExtension === 'js')
+                innerHtml = innerHtml + `<script type="module" crossorigin src="/site/assets/${uploadedFiles[i].s3Key}"></script>` + '\n\n';
+            if (uploadedFiles[i].fileExtension === 'css')
+                innerHtml = innerHtml + `<link rel="stylesheet" crossorigin href="/site/assets/${uploadedFiles[i].s3Key}">` + '\n\n';
+        }
         for (let i = 0; i <= styles.length - 1; i++) {
             innerHtml = innerHtml + decodeURIComponent(styles[i]) + '\n\n';
         }
@@ -27,7 +33,7 @@ class PageCreator {
         return `<footer id="siteFooter"><p>${footerInnerHtml}</p></footer>`;
     }
     getBody(links, bodyInnerHtml, pageName, footer) {
-        return `<body>\n${this.getNavBar(links).replace(/^/gm, "\t\t")}\n\t\t<div id="content"><h1 id="pageheading">${pageName}</h1>\n${bodyInnerHtml.replace(/^/gm, "\t\t")}\n${this.getFooter(footer).replace(/^/gm, "\t\t")}\n\t\t</div>\n</body>`.replace(/^/gm, "\t\t");
+        return `<body>\n${this.getNavBar(links).replace(/^/gm, "\t\t")}\n\t\t<div id="content"><div id="root"></div><h1 id="pageheading">${pageName}</h1>\n${bodyInnerHtml.replace(/^/gm, "\t\t")}\n${this.getFooter(footer).replace(/^/gm, "\t\t")}\n\t\t</div>\n</body>`.replace(/^/gm, "\t\t");
     }
 }
 exports.PageCreator = PageCreator;

@@ -24,6 +24,7 @@ CREATE TABLE files (
     appId MEDIUMINT not NULL,
     fileName varchar(255) NOT NULL,
     fileExtension varchar(255) NOT NULL,
+    uploaded varchar(5) NOT NULL,
     s3Key varChar(255) NOT NULL,
     primary key (fileId),
     foreign key (userId) REFERENCES users (userId),

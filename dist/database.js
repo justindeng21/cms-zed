@@ -3,106 +3,21 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.CMSDatabase = void 0;
 const server_1 = require("./server");
 const passwordManager_1 = require("./passwordManager");
-const usersTable = `CREATE TABLE users (
-    userId MEDIUMINT  NOT NULL AUTO_INCREMENT,
-    username varchar(255) NOT NULL,
-    email varchar(255) NOT NULL,
-    sessionCookie varchar(255) NOT NULL,
-    salt varchar(255) NOT NULL,
-    password varchar(500) NOT NULL,
-    primary key (userId)
-);`;
-const appTable = `CREATE TABLE apps (
-    appId MEDIUMINT  NOT NULL AUTO_INCREMENT,
-    appName varchar(255) NOT NULL,
-    userId MEDIUMINT NOT NULL,
-    primary key (appId),
-    foreign key (userId) REFERENCES users (userId)
-);`;
-const filesTable = `CREATE TABLE files (
-    fileId MEDIUMINT  NOT NULL AUTO_INCREMENT,
-    userId MEDIUMINT NOT NULL,
-    appId MEDIUMINT not NULL,
-    fileName varchar(255) NOT NULL,
-    fileExtension varchar(255) NOT NULL,
-    s3Key varChar(255) NOT NULL,
-    primary key (fileId),
-    foreign key (userId) REFERENCES users (userId),
-    foreign key (appId) REFERENCES apps (appId)
-);`;
-const pageTable = `CREATE TABLE pages(
-    pageId MEDIUMINT  NOT NULL AUTO_INCREMENT,
-    userId MEDIUMINT NOT NULL,
-    appId MEDIUMINT NOT NULL,
-    title varChar(255) NOT NULL,
-    primary key (pageId),
-    foreign key (userId) REFERENCES users (userId),
-    foreign key (appId) REFERENCES apps (appId)
-);`;
-const contentTable = `CREATE TABLE content (
-    contentId MEDIUMINT  NOT NULL AUTO_INCREMENT,
-    userId MEDIUMINT NOT NULL,
-    pageId MEDIUMINT NOT NULL,
-    s3Key varChar(255) NOT NULL,
-    heading varChar(255) NOT NULL,
-    primary key (contentId),
-    foreign key (userId) REFERENCES users (userId),
-    foreign key (pageId) REFERENCES pages (pageId)
-);`;
-const tagsTable = `CREATE TABLE tags (
-    tagId MEDIUMINT  NOT NULL AUTO_INCREMENT,
-    tagName varChar(255),
-    userId MEDIUMINT NOT NULL,
-    tag text NOT NULL,
-    primary key (tagId),
-    foreign key (userId) REFERENCES users (userId)
-);`;
-const templateTable = `CREATE table templates (
-    templateId MEDIUMINT  NOT NULL AUTO_INCREMENT,
-    templateName varChar(255),
-    userId MEDIUMINT NOT NULL,
-    template text NOT NULL,
-    primary key (templateId),
-    foreign key (userId) REFERENCES users (userId)
-);`;
 class CMSDatabase extends server_1.Database {
     constructor() {
         super();
         this.passwordManager = new passwordManager_1.PasswordManager();
-    }
-    createTables() {
-        return this._query(usersTable)
-            .then(() => {
-            this._query(appTable)
-                .then(() => {
-                this._query(filesTable)
-                    .then(() => {
-                    this._query(pageTable)
-                        .then(() => {
-                        this._query(contentTable)
-                            .then(() => {
-                            this._query(tagsTable);
-                        });
-                    });
-                });
-            });
-        });
     }
     _createUser(username, email, password) {
         const salt = this.passwordManager.randomString(25);
         const saltedPassword = `${password}${salt}`;
         this._query(`insert into users(username,email,sessionCookie,password,salt)values("${username}","${email}","no session","${this.passwordManager.getHash(saltedPassword)}","${salt}")`);
     }
-    _createDatabase() {
-        return this._query('use codeStorage').then(() => {
-            this.createTables();
-        });
-    }
     _deleteDatabase(databaseName) {
         return this._query(`drop database ${databaseName};`);
     }
-    _storeNewFile(fileName, fileExtension, userId, appId, s3Key) {
-        return this._query(`insert into files(userId, appID, fileName,fileExtension, s3Key)values(${userId}, ${appId},"${fileName}","${fileExtension}","${s3Key}")`);
+    _storeNewFile(fileName, fileExtension, userId, appId, s3Key, uploaded) {
+        return this._query(`insert into files(userId, appID, fileName,fileExtension, s3Key, uploaded)values(${userId}, ${appId},"${fileName}","${fileExtension}","${s3Key}","${uploaded}")`);
     }
     _saveFile(fileName, fileExtension, userId, fileId) {
         return this._query(`update files set fileName = "${fileName}", fileExtension = "${fileExtension}" where userId = ${userId} and fileId = ${fileId};`);
@@ -110,8 +25,11 @@ class CMSDatabase extends server_1.Database {
     _loadFile(userId, fileId) {
         return this._query(`select * from files where userId = ${userId} and fileId = ${fileId};`);
     }
-    _getFiles(userId, appId) {
-        return this._query(`select * from files where userId = ${userId} and appId = ${appId};`);
+    _getFiles(userId, appId, uploaded) {
+        if (uploaded !== '')
+            return this._query(`select * from files where userId = ${userId} and appId = ${appId} and uploaded = "${uploaded}";`);
+        else
+            return this._query(`select * from files where userId = ${userId} and appId = ${appId};`);
     }
     _delete(fileId) {
         return this._query(`delete from files where fileId = ${fileId}`);

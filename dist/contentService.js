@@ -10,7 +10,7 @@ class ContentService extends fileService_1.FileService {
         this.defineContentEndpoints();
         this.pageCreator = new template_1.PageCreator();
     }
-    async writeHtml(contents, userId, pageName, appId, template) {
+    async writeHtml(contents, userId, pageName, appId, template, uploadedFiles) {
         let bodyInnerHtml = '';
         for (let i = 0; i <= contents.length - 1; i++) {
             let k = new Promise((resolve, reject) => {
@@ -24,9 +24,9 @@ class ContentService extends fileService_1.FileService {
             await k;
         }
         const s3Key = `${this.passwordManager.getHash(this.passwordManager.randomString(5))}.html`;
-        const head = this.pageCreator.getHead(template.scripts, template.styles, pageName);
+        const head = this.pageCreator.getHead(template.scripts, template.styles, pageName, uploadedFiles);
         const body = this.pageCreator.getBody(template.links, bodyInnerHtml, pageName, template.footer);
-        this.database._storeNewFile(s3Key, 'html', userId, appId, s3Key).then(() => {
+        this.database._storeNewFile(s3Key, 'html', userId, appId, s3Key, 'false').then(() => {
             this.writeFile(s3Key, `<html>\n${head}\n${body}\n</html>`);
         });
     }
@@ -184,7 +184,7 @@ class ContentService extends fileService_1.FileService {
                         const appId = req.body.appId;
                         const userId = rows[0].userId;
                         const templateId = req.body.templateId;
-                        this.database._getFiles(userId, appId).then((rows_files) => {
+                        this.database._getFiles(userId, appId, 'false').then((rows_files) => {
                             for (let i = 0; i <= rows_files.length - 1; i++) {
                                 this.database._loadFile(userId, rows_files[i].fileId).then((rows) => {
                                     this.fileStorage.deleteObject({ Bucket: this.bucketName, Key: rows_files[i].s3Key }, function (err, data) {
@@ -197,17 +197,20 @@ class ContentService extends fileService_1.FileService {
                                 });
                             }
                         }).then(() => {
-                            this.database._getPages(userId, appId).then((rows) => {
-                                for (let i = 0; i <= rows.length - 1; i++) {
-                                    const pageId = rows[i].pageId;
-                                    const title = rows[i].title;
-                                    this.database._loadContent(userId, pageId).then((rows) => {
-                                        const content = rows;
-                                        this.database._getTemplate(userId, templateId).then((rows) => {
-                                            this.writeHtml(content, userId, title, appId, JSON.parse(decodeURIComponent(rows[0].template)));
+                            this.database._getFiles(userId, appId, 'true').then((uploadedFilesRows) => {
+                                const uploadedFiles = uploadedFilesRows;
+                                this.database._getPages(userId, appId).then((rows) => {
+                                    for (let i = 0; i <= rows.length - 1; i++) {
+                                        const pageId = rows[i].pageId;
+                                        const title = rows[i].title;
+                                        this.database._loadContent(userId, pageId).then((rows) => {
+                                            const content = rows;
+                                            this.database._getTemplate(userId, templateId).then((rows) => {
+                                                this.writeHtml(content, userId, title, appId, JSON.parse(decodeURIComponent(rows[0].template)), uploadedFiles);
+                                            });
                                         });
-                                    });
-                                }
+                                    }
+                                });
                             });
                         }).then(() => {
                             res.sendStatus(204);
