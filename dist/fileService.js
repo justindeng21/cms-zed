@@ -102,15 +102,20 @@ class FileService extends authService_1.AuthService {
                 res.sendStatus(401);
             }
             else {
-                this.database._validateToken(this.validateSession(req.headers.cookie.split('; '))).then((rows) => {
-                    const appName = req.body.appName;
-                    if (rows.length !== 0) {
-                        this.database._storeNewApp(appName, rows[0].userId);
-                        res.sendStatus(204);
-                    }
-                    else
-                        res.sendStatus(401);
-                });
+                const appName = req.body.appName;
+                if (appName === undefined) {
+                    res.sendStatus(400);
+                }
+                else {
+                    this.database._validateToken(this.validateSession(req.headers.cookie.split('; '))).then((rows) => {
+                        if (rows.length !== 0) {
+                            this.database._storeNewApp(appName, rows[0].userId);
+                            res.sendStatus(204);
+                        }
+                        else
+                            res.sendStatus(401);
+                    });
+                }
             }
         });
         this.app.post('/app', server_1.jsonParser, (req, res) => {
@@ -118,16 +123,21 @@ class FileService extends authService_1.AuthService {
                 res.sendStatus(401);
             }
             else {
-                this.database._validateToken(this.validateSession(req.headers.cookie.split('; '))).then((rows) => {
-                    const appId = req.body.appId;
-                    if (rows.length !== 0) {
-                        this.database._getFiles(rows[0].userId, Number(appId), '').then((rows) => {
-                            res.send(rows);
-                        });
-                    }
-                    else
-                        res.sendStatus(401);
-                });
+                const appId = req.body.appId;
+                if (appId === undefined) {
+                    res.sendStatus(400);
+                }
+                else {
+                    this.database._validateToken(this.validateSession(req.headers.cookie.split('; '))).then((rows) => {
+                        if (rows.length !== 0) {
+                            this.database._getFiles(rows[0].userId, Number(appId), '').then((rows) => {
+                                res.send(rows);
+                            });
+                        }
+                        else
+                            res.sendStatus(401);
+                    });
+                }
             }
         });
         this.app.get('/apps', server_1.jsonParser, (req, res) => {
@@ -151,11 +161,11 @@ class FileService extends authService_1.AuthService {
                 res.sendStatus(401);
             }
             else {
-                if (req.headers.cookie === undefined) {
-                    res.sendStatus(401);
+                const fileId = req.body.fileId;
+                if (fileId === undefined) {
+                    res.sendStatus(400);
                 }
                 else {
-                    const fileId = req.body.fileId;
                     this.database._validateToken(this.validateSession(req.headers.cookie.split('; '))).then((rows) => {
                         if (rows.length !== 0) {
                             this.database._loadFile(rows[0].userId, Number(fileId)).then((rows) => {
@@ -176,28 +186,33 @@ class FileService extends authService_1.AuthService {
                 res.sendStatus(401);
             }
             else {
-                this.database._validateToken(this.validateSession(req.headers.cookie.split('; '))).then((rows) => {
-                    const appId = req.body.appId;
-                    const secretKey = req.body.secretKey;
-                    const accessKey = req.body.accessKey;
-                    const bucketName = req.body.bucketName;
-                    if (rows.length !== 0) {
-                        this.database._getFiles(rows[0].userId, Number(appId), 'false').then((rows) => {
-                            for (var i = 0; i <= rows.length - 1; i++) {
-                                let contentType = '';
-                                if (rows[0].fileExtension === 'css')
-                                    contentType = 'text/css';
-                                if (rows[0].fileExtension === 'js')
-                                    contentType = 'application/javascript';
-                                if (rows[0].fileExtension === 'html')
-                                    contentType = 'text/html';
-                                this.writeToExternalBucket(accessKey, secretKey, rows[i].s3Key, rows[i].fileName, bucketName, contentType);
-                            }
-                        });
-                    }
-                    else
-                        res.sendStatus(401);
-                });
+                const appId = req.body.appId;
+                const secretKey = req.body.secretKey;
+                const accessKey = req.body.accessKey;
+                const bucketName = req.body.bucketName;
+                if (appId === undefined || secretKey === undefined || accessKey === undefined || bucketName === undefined) {
+                    res.sendStatus(400);
+                }
+                else {
+                    this.database._validateToken(this.validateSession(req.headers.cookie.split('; '))).then((rows) => {
+                        if (rows.length !== 0) {
+                            this.database._getFiles(rows[0].userId, Number(appId), 'false').then((rows) => {
+                                for (var i = 0; i <= rows.length - 1; i++) {
+                                    let contentType = '';
+                                    if (rows[0].fileExtension === 'css')
+                                        contentType = 'text/css';
+                                    if (rows[0].fileExtension === 'js')
+                                        contentType = 'application/javascript';
+                                    if (rows[0].fileExtension === 'html')
+                                        contentType = 'text/html';
+                                    this.writeToExternalBucket(accessKey, secretKey, rows[i].s3Key, rows[i].fileName, bucketName, contentType);
+                                }
+                            });
+                        }
+                        else
+                            res.sendStatus(401);
+                    });
+                }
             }
         });
         this.app.post('/save/', server_1.jsonParser, (req, res) => {
@@ -211,18 +226,23 @@ class FileService extends authService_1.AuthService {
                 const fileName = req.body.fileName;
                 const fileId = req.body.fileId;
                 const fileExtension = fileName.split('.')[1];
-                this.database._validateToken(this.validateSession(req.headers.cookie.split('; '))).then((rows) => {
-                    if (rows.length !== 0) {
-                        this.database._saveFile(fileName, fileExtension, rows[0].userId, fileId).then(() => {
-                            this.database._loadFile(rows[0].userId, Number(fileId)).then((rows) => {
-                                this.writeFile(rows[0].s3Key, req.body.code);
+                if (fileName === undefined || fileId === undefined || fileExtension === undefined) {
+                    res.sendStatus(400);
+                }
+                else {
+                    this.database._validateToken(this.validateSession(req.headers.cookie.split('; '))).then((rows) => {
+                        if (rows.length !== 0) {
+                            this.database._saveFile(fileName, fileExtension, rows[0].userId, fileId).then(() => {
+                                this.database._loadFile(rows[0].userId, Number(fileId)).then((rows) => {
+                                    this.writeFile(rows[0].s3Key, req.body.code);
+                                });
                             });
-                        });
-                        res.sendStatus(200);
-                    }
-                    else
-                        res.sendStatus(401);
-                });
+                            res.sendStatus(200);
+                        }
+                        else
+                            res.sendStatus(401);
+                    });
+                }
             }
         });
         this.app.post('/delete/', server_1.jsonParser, (req, res) => {
@@ -233,23 +253,28 @@ class FileService extends authService_1.AuthService {
                 res.sendStatus(401);
             }
             else {
-                this.database._validateToken(this.validateSession(req.headers.cookie.split('; '))).then((rows) => {
-                    if (rows.length !== 0) {
-                        const fileId = req.body.fileId;
-                        this.database._loadFile(rows[0].userId, fileId).then((rows) => {
-                            this.fileStorage.deleteObject({ Bucket: this.bucketName, Key: rows[0].s3Key }, function (err, data) {
-                                if (err)
-                                    console.log(err, err.stack); // error
-                                else
-                                    console.log(); // deleted
+                const fileId = req.body.fileId;
+                if (fileId === undefined) {
+                    res.sendStatus(400);
+                }
+                else {
+                    this.database._validateToken(this.validateSession(req.headers.cookie.split('; '))).then((rows) => {
+                        if (rows.length !== 0) {
+                            this.database._loadFile(rows[0].userId, fileId).then((rows) => {
+                                this.fileStorage.deleteObject({ Bucket: this.bucketName, Key: rows[0].s3Key }, function (err, data) {
+                                    if (err)
+                                        console.log(err, err.stack); // error
+                                    else
+                                        console.log(); // deleted
+                                });
+                                this.database._delete(fileId);
                             });
-                            this.database._delete(fileId);
-                        });
-                        res.sendStatus(200);
-                    }
-                    else
-                        res.sendStatus(401);
-                });
+                            res.sendStatus(200);
+                        }
+                        else
+                            res.sendStatus(401);
+                    });
+                }
             }
         });
         this.app.post('/new/', server_1.jsonParser, (req, res) => {
@@ -264,16 +289,21 @@ class FileService extends authService_1.AuthService {
                 const paths = fileName.split('/');
                 const parseFileName = paths[paths.length - 1];
                 const s3Key = `${this.passwordManager.getHash(this.passwordManager.randomString(5))}-${parseFileName}`;
-                this.database._validateToken(this.validateSession(req.headers.cookie.split('; '))).then((rows) => {
-                    if (rows.length !== 0) {
-                        this.database._storeNewFile(fileName, fileExtension, rows[0].userId, appId, s3Key, 'false').then(() => {
-                            this.writeFile(s3Key, code);
-                        });
-                        res.sendStatus(200);
-                    }
-                    else
-                        res.sendStatus(401);
-                });
+                if (fileName === undefined || code === undefined || appId === undefined || fileExtension === undefined || paths === undefined || parseFileName === undefined || s3Key === undefined) {
+                    res.sendStatus(400);
+                }
+                else {
+                    this.database._validateToken(this.validateSession(req.headers.cookie.split('; '))).then((rows) => {
+                        if (rows.length !== 0) {
+                            this.database._storeNewFile(fileName, fileExtension, rows[0].userId, appId, s3Key, 'false').then(() => {
+                                this.writeFile(s3Key, code);
+                            });
+                            res.sendStatus(200);
+                        }
+                        else
+                            res.sendStatus(401);
+                    });
+                }
             }
         });
         this.app.post('/upload/:appId', upload.single('file'), (req, res) => {
@@ -281,64 +311,73 @@ class FileService extends authService_1.AuthService {
                 res.sendStatus(401);
             }
             else {
-                this.database._validateToken(this.validateSession(req.headers.cookie.split('; '))).then((rows) => {
-                    if (rows.length !== 0) {
-                        const appId = req.params.appId;
-                        fs_1.default.rename(`uploads/${req.file.filename}`, req.file.originalname, function (err) {
-                            if (err)
-                                console.log('ERROR: ' + err);
-                        });
-                        this.database._storeNewFile(req.file.originalname, req.file.originalname.split('.')[1], rows[0].userId, Number(appId), req.file.originalname, 'true').then(() => {
-                            this.uploadToS3(req.file.originalname, this.bucketName).then(() => {
-                                fs_1.default.unlinkSync(req.file.originalname);
+                const appId = req.params.appId;
+                if (appId === undefined) {
+                    res.sendStatus(400);
+                }
+                else {
+                    this.database._validateToken(this.validateSession(req.headers.cookie.split('; '))).then((rows) => {
+                        if (rows.length !== 0) {
+                            fs_1.default.rename(`uploads/${req.file.filename}`, req.file.originalname, function (err) {
+                                if (err)
+                                    console.log('ERROR: ' + err);
                             });
-                        });
-                        res.sendStatus(204);
-                    }
-                    else
-                        res.sendStatus(401);
-                });
+                            this.database._storeNewFile(req.file.originalname, req.file.originalname.split('.')[1], rows[0].userId, Number(appId), req.file.originalname, 'true').then(() => {
+                                this.uploadToS3(req.file.originalname, this.bucketName).then(() => {
+                                    fs_1.default.unlinkSync(req.file.originalname);
+                                });
+                            });
+                            res.sendStatus(204);
+                        }
+                        else
+                            res.sendStatus(401);
+                    });
+                }
             }
         });
         this.app.get('/view/:fileId', server_1.jsonParser, (req, res) => {
             const fileId = req.params.fileId;
-            this.database._query(`select * from files where fileId = ${fileId}`).then((rows) => {
-                console.log(rows);
-                if (rows.length === 0) {
-                    res.sendStatus(404);
-                }
-                else if (rows[0].fileExtension === 'css') {
-                    res.setHeader('content-type', 'text/css');
-                    this.database._loadFile(rows[0].userId, Number(fileId)).then((rows) => {
-                        this.fileStorage.getObject({ Bucket: this.bucketName, Key: rows[0].s3Key }, function (err, data) {
-                            res.send(data.Body.toString('utf-8'));
+            if (fileId === undefined) {
+                res.status(404);
+            }
+            else {
+                this.database._query(`select * from files where fileId = ${fileId}`).then((rows) => {
+                    console.log(rows);
+                    if (rows.length === 0) {
+                        res.sendStatus(404);
+                    }
+                    else if (rows[0].fileExtension === 'css') {
+                        res.setHeader('content-type', 'text/css');
+                        this.database._loadFile(rows[0].userId, Number(fileId)).then((rows) => {
+                            this.fileStorage.getObject({ Bucket: this.bucketName, Key: rows[0].s3Key }, function (err, data) {
+                                res.send(data.Body.toString('utf-8'));
+                            });
                         });
-                    });
-                }
-                else if (rows[0].fileExtension === 'js') {
-                    res.setHeader('content-type', 'application/javascript');
-                    this.database._loadFile(rows[0].userId, Number(fileId)).then((rows) => {
-                        this.fileStorage.getObject({ Bucket: this.bucketName, Key: rows[0].s3Key }, function (err, data) {
-                            res.send(data.Body.toString('utf-8'));
+                    }
+                    else if (rows[0].fileExtension === 'js') {
+                        res.setHeader('content-type', 'application/javascript');
+                        this.database._loadFile(rows[0].userId, Number(fileId)).then((rows) => {
+                            this.fileStorage.getObject({ Bucket: this.bucketName, Key: rows[0].s3Key }, function (err, data) {
+                                res.send(data.Body.toString('utf-8'));
+                            });
                         });
-                    });
-                }
-                else if (rows[0].fileExtension === 'html') {
-                    res.setHeader('content-type', 'text/html');
-                    this.database._loadFile(rows[0].userId, Number(fileId)).then((rows) => {
-                        this.fileStorage.getObject({ Bucket: this.bucketName, Key: rows[0].s3Key }, function (err, data) {
-                            res.send(data.Body.toString('utf-8'));
+                    }
+                    else if (rows[0].fileExtension === 'html') {
+                        res.setHeader('content-type', 'text/html');
+                        this.database._loadFile(rows[0].userId, Number(fileId)).then((rows) => {
+                            this.fileStorage.getObject({ Bucket: this.bucketName, Key: rows[0].s3Key }, function (err, data) {
+                                res.send(data.Body.toString('utf-8'));
+                            });
                         });
-                    });
-                }
-                else
-                    res.sendStatus(404);
-            });
+                    }
+                    else
+                        res.sendStatus(404);
+                });
+            }
         });
         this.app.get('/site/assets/:fileName', (req, res) => {
             const key = req.params.fileName;
             const fileExtension = key.split('.')[1];
-            console.log(key);
             if (fileExtension === 'css')
                 res.setHeader('content-type', 'text/css');
             if (fileExtension === 'js')

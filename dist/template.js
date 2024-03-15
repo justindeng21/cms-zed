@@ -49,16 +49,21 @@ class TemplateService extends contentService_1.ContentService {
                 res.sendStatus(401);
             }
             else {
-                this.database._validateToken(this.validateSession(req.headers.cookie.split('; '))).then((rows) => {
-                    const tag = req.body.tag;
-                    const tagName = req.body.tagName;
-                    if (rows.length !== 0) {
-                        this.database._storeNewTag(rows[0].userId, tag, tagName);
-                        res.sendStatus(204);
-                    }
-                    else
-                        res.sendStatus(401);
-                });
+                const tag = req.body.tag;
+                const tagName = req.body.tagName;
+                if (tag === undefined || tagName === undefined) {
+                    res.sendStatus(400);
+                }
+                else {
+                    this.database._validateToken(this.validateSession(req.headers.cookie.split('; '))).then((rows) => {
+                        if (rows.length !== 0) {
+                            this.database._storeNewTag(rows[0].userId, tag, tagName);
+                            res.sendStatus(204);
+                        }
+                        else
+                            res.sendStatus(401);
+                    });
+                }
             }
         });
         this.app.post('/load/tag', server_1.jsonParser, (req, res) => {
@@ -66,16 +71,21 @@ class TemplateService extends contentService_1.ContentService {
                 res.sendStatus(401);
             }
             else {
-                this.database._validateToken(this.validateSession(req.headers.cookie.split('; '))).then((rows) => {
-                    const tagId = req.body.tagId;
-                    if (rows.length !== 0) {
-                        this.database._getTag(rows[0].userId, Number(tagId)).then((rows) => {
-                            res.send(rows);
-                        });
-                    }
-                    else
-                        res.sendStatus(401);
-                });
+                const tagId = req.body.tagId;
+                if (tagId === undefined) {
+                    res.sendStatus(400);
+                }
+                else {
+                    this.database._validateToken(this.validateSession(req.headers.cookie.split('; '))).then((rows) => {
+                        if (rows.length !== 0) {
+                            this.database._getTag(rows[0].userId, Number(tagId)).then((rows) => {
+                                res.send(rows);
+                            });
+                        }
+                        else
+                            res.sendStatus(401);
+                    });
+                }
             }
         });
         this.app.get('/tags', server_1.jsonParser, (req, res) => {
@@ -83,7 +93,6 @@ class TemplateService extends contentService_1.ContentService {
                 res.sendStatus(401);
             }
             else {
-                console.log('hi');
                 this.database._validateToken(this.validateSession(req.headers.cookie.split('; '))).then((rows) => {
                     if (rows.length !== 0) {
                         this.database._getTags(rows[0].userId).then((rows) => {
@@ -100,17 +109,22 @@ class TemplateService extends contentService_1.ContentService {
                 res.sendStatus(401);
             }
             else {
-                this.database._validateToken(this.validateSession(req.headers.cookie.split('; '))).then((rows) => {
-                    const tag = req.body.tag;
-                    const tagName = req.body.tagName;
-                    const tagId = req.body.tagId;
-                    if (rows.length !== 0) {
-                        this.database._updateTag(rows[0].userId, tagId, tag, tagName);
-                        res.sendStatus(204);
-                    }
-                    else
-                        res.sendStatus(401);
-                });
+                const tag = req.body.tag;
+                const tagName = req.body.tagName;
+                const tagId = req.body.tagId;
+                if (tag === undefined || tagName === undefined || tagId === undefined) {
+                    res.sendStatus(400);
+                }
+                else {
+                    this.database._validateToken(this.validateSession(req.headers.cookie.split('; '))).then((rows) => {
+                        if (rows.length !== 0) {
+                            this.database._updateTag(rows[0].userId, tagId, tag, tagName);
+                            res.sendStatus(204);
+                        }
+                        else
+                            res.sendStatus(401);
+                    });
+                }
             }
         });
         this.app.post('/new/template', server_1.jsonParser, (req, res) => {
@@ -118,16 +132,21 @@ class TemplateService extends contentService_1.ContentService {
                 res.sendStatus(401);
             }
             else {
-                this.database._validateToken(this.validateSession(req.headers.cookie.split('; '))).then((rows) => {
-                    const template = encodeURIComponent(JSON.stringify(req.body)).replace(/'/g, "%27");
-                    const templateName = req.body.metaData.name;
-                    if (rows.length !== 0) {
-                        this.database._storeNewTemplate(rows[0].userId, template, templateName);
-                        res.sendStatus(204);
-                    }
-                    else
-                        res.sendStatus(401);
-                });
+                const template = encodeURIComponent(JSON.stringify(req.body)).replace(/'/g, "%27");
+                const templateName = req.body.metaData.name;
+                if (template === undefined || templateName === undefined) {
+                    res.sendStatus(400);
+                }
+                else {
+                    this.database._validateToken(this.validateSession(req.headers.cookie.split('; '))).then((rows) => {
+                        if (rows.length !== 0) {
+                            this.database._storeNewTemplate(rows[0].userId, template, templateName);
+                            res.sendStatus(204);
+                        }
+                        else
+                            res.sendStatus(401);
+                    });
+                }
             }
         });
         this.app.get('/templates', server_1.jsonParser, (req, res) => {
@@ -151,17 +170,21 @@ class TemplateService extends contentService_1.ContentService {
                 res.sendStatus(401);
             }
             else {
-                console.log(req.body);
-                this.database._validateToken(this.validateSession(req.headers.cookie.split('; '))).then((rows) => {
-                    const templateId = req.body.templateId;
-                    if (rows.length !== 0) {
-                        this.database._getTemplate(rows[0].userId, templateId).then((rows) => {
-                            res.send(rows);
-                        });
-                    }
-                    else
-                        res.sendStatus(401);
-                });
+                const templateId = req.body.templateId;
+                if (templateId === undefined) {
+                    res.sendStatus(400);
+                }
+                else {
+                    this.database._validateToken(this.validateSession(req.headers.cookie.split('; '))).then((rows) => {
+                        if (rows.length !== 0) {
+                            this.database._getTemplate(rows[0].userId, templateId).then((rows) => {
+                                res.send(rows);
+                            });
+                        }
+                        else
+                            res.sendStatus(401);
+                    });
+                }
             }
         });
         this.app.post('/save/template/:templateId', server_1.jsonParser, (req, res) => {
@@ -169,17 +192,22 @@ class TemplateService extends contentService_1.ContentService {
                 res.sendStatus(401);
             }
             else {
-                this.database._validateToken(this.validateSession(req.headers.cookie.split('; '))).then((rows) => {
-                    const template = encodeURIComponent(JSON.stringify(req.body)).replace(/'/g, "%27");
-                    const templateName = req.body.metaData.name;
-                    const templateId = req.params.templateId;
-                    if (rows.length !== 0) {
-                        this.database._updateTemplate(rows[0].userId, Number(templateId), template, templateName);
-                        res.sendStatus(204);
-                    }
-                    else
-                        res.sendStatus(401);
-                });
+                const template = encodeURIComponent(JSON.stringify(req.body)).replace(/'/g, "%27");
+                const templateName = req.body.metaData.name;
+                const templateId = req.params.templateId;
+                if (template === undefined || templateName === undefined || templateId === undefined) {
+                    res.sendStatus(400);
+                }
+                else {
+                    this.database._validateToken(this.validateSession(req.headers.cookie.split('; '))).then((rows) => {
+                        if (rows.length !== 0) {
+                            this.database._updateTemplate(rows[0].userId, Number(templateId), template, templateName);
+                            res.sendStatus(204);
+                        }
+                        else
+                            res.sendStatus(401);
+                    });
+                }
             }
         });
     }

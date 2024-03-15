@@ -36,19 +36,24 @@ class ContentService extends fileService_1.FileService {
                 res.sendStatus(401);
             }
             else {
-                this.database._validateToken(this.validateSession(req.headers.cookie.split('; '))).then((rows) => {
-                    const content = req.body.content;
-                    const heading = req.body.heading;
-                    const pageId = req.body.pageId;
-                    const s3Key = `${this.passwordManager.getHash(this.passwordManager.randomString(5))}.json`;
-                    if (rows.length !== 0) {
-                        this.database._storeNewContent(rows[0].userId, pageId, s3Key, heading);
-                        this.writeFile(s3Key, `{"heading":"${encodeURIComponent(heading)}","content":"${encodeURIComponent(content)}"}`);
-                        res.sendStatus(204);
-                    }
-                    else
-                        res.sendStatus(401);
-                });
+                const content = req.body.content;
+                const heading = req.body.heading;
+                const pageId = req.body.pageId;
+                const s3Key = `${this.passwordManager.getHash(this.passwordManager.randomString(5))}.json`;
+                if (content === undefined || heading === undefined || pageId === undefined || s3Key === undefined) {
+                    res.sendStatus(400);
+                }
+                else {
+                    this.database._validateToken(this.validateSession(req.headers.cookie.split('; '))).then((rows) => {
+                        if (rows.length !== 0) {
+                            this.database._storeNewContent(rows[0].userId, pageId, s3Key, heading);
+                            this.writeFile(s3Key, `{"heading":"${encodeURIComponent(heading)}","content":"${encodeURIComponent(content)}"}`);
+                            res.sendStatus(204);
+                        }
+                        else
+                            res.sendStatus(401);
+                    });
+                }
             }
         });
         this.app.post('/page/new', server_1.jsonParser, (req, res) => {
@@ -58,14 +63,19 @@ class ContentService extends fileService_1.FileService {
             else {
                 const appId = req.body.appId;
                 const title = req.body.title;
-                this.database._validateToken(this.validateSession(req.headers.cookie.split('; '))).then((rows) => {
-                    if (rows.length !== 0) {
-                        this.database._storeNewPage(rows[0].userId, appId, title);
-                        res.send(204);
-                    }
-                    else
-                        res.sendStatus(401);
-                });
+                if (appId === undefined || title === undefined) {
+                    res.sendStatus(400);
+                }
+                else {
+                    this.database._validateToken(this.validateSession(req.headers.cookie.split('; '))).then((rows) => {
+                        if (rows.length !== 0) {
+                            this.database._storeNewPage(rows[0].userId, appId, title);
+                            res.send(204);
+                        }
+                        else
+                            res.sendStatus(401);
+                    });
+                }
             }
         });
         this.app.get('/pages/:appId', server_1.jsonParser, (req, res) => {
@@ -74,15 +84,20 @@ class ContentService extends fileService_1.FileService {
             }
             else {
                 const appId = req.params.appId;
-                this.database._validateToken(this.validateSession(req.headers.cookie.split('; '))).then((rows) => {
-                    if (rows.length !== 0) {
-                        this.database._getPages(rows[0].userId, Number(appId)).then((rows) => {
-                            res.send(rows);
-                        });
-                    }
-                    else
-                        res.sendStatus(401);
-                });
+                if (appId === undefined) {
+                    res.sendStatus(400);
+                }
+                else {
+                    this.database._validateToken(this.validateSession(req.headers.cookie.split('; '))).then((rows) => {
+                        if (rows.length !== 0) {
+                            this.database._getPages(rows[0].userId, Number(appId)).then((rows) => {
+                                res.send(rows);
+                            });
+                        }
+                        else
+                            res.sendStatus(401);
+                    });
+                }
             }
         });
         this.app.post('/page', server_1.jsonParser, (req, res) => {
@@ -91,15 +106,20 @@ class ContentService extends fileService_1.FileService {
             }
             else {
                 const pageId = req.body.pageId;
-                this.database._validateToken(this.validateSession(req.headers.cookie.split('; '))).then((rows) => {
-                    if (rows.length !== 0) {
-                        this.database._loadContent(rows[0].userId, pageId).then((rows) => {
-                            res.send(rows);
-                        });
-                    }
-                    else
-                        res.sendStatus(401);
-                });
+                if (pageId === undefined) {
+                    res.sendStatus(400);
+                }
+                else {
+                    this.database._validateToken(this.validateSession(req.headers.cookie.split('; '))).then((rows) => {
+                        if (rows.length !== 0) {
+                            this.database._loadContent(rows[0].userId, pageId).then((rows) => {
+                                res.send(rows);
+                            });
+                        }
+                        else
+                            res.sendStatus(401);
+                    });
+                }
             }
         });
         this.app.post('/load/content', server_1.jsonParser, (req, res) => {
@@ -112,18 +132,23 @@ class ContentService extends fileService_1.FileService {
                 }
                 else {
                     const contentId = req.body.contentId;
-                    this.database._validateToken(this.validateSession(req.headers.cookie.split('; '))).then((rows) => {
-                        if (rows.length !== 0) {
-                            this.database._getContent(rows[0].userId, Number(contentId)).then((rows) => {
-                                this.fileStorage.getObject({ Bucket: this.bucketName, Key: rows[0].s3Key }, function (err, data) {
-                                    res.setHeader('content-type', 'application/json');
-                                    res.send(data.Body.toString('utf-8'));
+                    if (contentId === undefined) {
+                        res.sendStatus(400);
+                    }
+                    else {
+                        this.database._validateToken(this.validateSession(req.headers.cookie.split('; '))).then((rows) => {
+                            if (rows.length !== 0) {
+                                this.database._getContent(rows[0].userId, Number(contentId)).then((rows) => {
+                                    this.fileStorage.getObject({ Bucket: this.bucketName, Key: rows[0].s3Key }, function (err, data) {
+                                        res.setHeader('content-type', 'application/json');
+                                        res.send(data.Body.toString('utf-8'));
+                                    });
                                 });
-                            });
-                        }
-                        else
-                            res.sendStatus(401);
-                    });
+                            }
+                            else
+                                res.sendStatus(401);
+                        });
+                    }
                 }
             }
         });
@@ -132,22 +157,27 @@ class ContentService extends fileService_1.FileService {
                 res.sendStatus(401);
             }
             else {
-                this.database._validateToken(this.validateSession(req.headers.cookie.split('; '))).then((rows) => {
-                    const contentId = req.body.contentId;
-                    const heading = req.body.heading;
-                    const content = req.body.content;
-                    const userId = rows[0].userId;
-                    if (rows.length !== 0) {
-                        this.database._saveContent(rows[0].userId, Number(contentId), heading).then((rows) => {
-                            this.database._getContent(userId, Number(contentId)).then((rows) => {
-                                this.writeFile(rows[0].s3Key, `{"heading":"${encodeURIComponent(heading)}","content":"${encodeURIComponent(content)}"}`);
+                const contentId = req.body.contentId;
+                const heading = req.body.heading;
+                const content = req.body.content;
+                if (contentId === undefined || heading === undefined || content === undefined) {
+                    res.sendStatus(400);
+                }
+                else {
+                    this.database._validateToken(this.validateSession(req.headers.cookie.split('; '))).then((rows) => {
+                        const userId = rows[0].userId;
+                        if (rows.length !== 0) {
+                            this.database._saveContent(rows[0].userId, Number(contentId), heading).then((rows) => {
+                                this.database._getContent(userId, Number(contentId)).then((rows) => {
+                                    this.writeFile(rows[0].s3Key, `{"heading":"${encodeURIComponent(heading)}","content":"${encodeURIComponent(content)}"}`);
+                                });
                             });
-                        });
-                        res.sendStatus(204);
-                    }
-                    else
-                        res.sendStatus(401);
-                });
+                            res.sendStatus(204);
+                        }
+                        else
+                            res.sendStatus(401);
+                    });
+                }
             }
         });
         this.app.post('/delete/content', server_1.jsonParser, (req, res) => {
@@ -155,23 +185,28 @@ class ContentService extends fileService_1.FileService {
                 res.sendStatus(401);
             }
             else {
-                this.database._validateToken(this.validateSession(req.headers.cookie.split('; '))).then((rows) => {
-                    if (rows.length !== 0) {
-                        const contentId = req.body.contentId;
-                        this.database._getContent(rows[0].userId, contentId).then((rows) => {
-                            this.fileStorage.deleteObject({ Bucket: this.bucketName, Key: rows[0].s3Key }, function (err, data) {
-                                if (err)
-                                    console.log(err, err.stack); // error
-                                else
-                                    console.log(); // deleted
+                const contentId = req.body.contentId;
+                if (contentId === undefined) {
+                    res.sendStatus(400);
+                }
+                else {
+                    this.database._validateToken(this.validateSession(req.headers.cookie.split('; '))).then((rows) => {
+                        if (rows.length !== 0) {
+                            this.database._getContent(rows[0].userId, contentId).then((rows) => {
+                                this.fileStorage.deleteObject({ Bucket: this.bucketName, Key: rows[0].s3Key }, function (err, data) {
+                                    if (err)
+                                        console.log(err, err.stack); // error
+                                    else
+                                        console.log(); // deleted
+                                });
+                                this.database._deleteContent(rows[0].userId, contentId);
                             });
-                            this.database._deleteContent(rows[0].userId, contentId);
-                        });
-                        res.sendStatus(200);
-                    }
-                    else
-                        res.sendStatus(401);
-                });
+                            res.sendStatus(200);
+                        }
+                        else
+                            res.sendStatus(401);
+                    });
+                }
             }
         });
         this.app.post('/publish/content', server_1.jsonParser, (req, res) => {
@@ -179,11 +214,14 @@ class ContentService extends fileService_1.FileService {
                 res.sendStatus(401);
             }
             else {
+                const templateId = req.body.templateId;
+                const appId = req.body.appId;
+                if (templateId === undefined || appId === undefined) {
+                    res.sendStatus(400);
+                }
                 this.database._validateToken(this.validateSession(req.headers.cookie.split('; '))).then((rows) => {
                     if (rows.length !== 0) {
-                        const appId = req.body.appId;
                         const userId = rows[0].userId;
-                        const templateId = req.body.templateId;
                         this.database._getFiles(userId, appId, 'false').then((rows_files) => {
                             for (let i = 0; i <= rows_files.length - 1; i++) {
                                 this.database._loadFile(userId, rows_files[i].fileId).then((rows) => {
